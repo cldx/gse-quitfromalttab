@@ -1,5 +1,6 @@
 =============
 ## Quit from Alt Tab 
+* This is just a quick basic injection, if anybody wants to pick this up just fork away and send me a pull request :)
 * UUID: gse-quitfromalttab@upinthesky.net
 * Version: 0.1
 
