@@ -1,0 +1,6 @@
+{
+"shell-version": ["3.10","3.12"], 
+"uuid": "gse-quitfromalttab@upinthesky.net", 
+"name": "Quit from AltTab", 
+"description": "Adds a Close Button to the Alt Tab Switcher" 
+} 
