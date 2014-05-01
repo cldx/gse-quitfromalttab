@@ -4,7 +4,7 @@
 * UUID: gse-quitfromalttab@upinthesky.net
 * Version: 0.1
 
-### 0.1
+### 0.2
 * Initial Version
 * Add Close Buttons to Single Instance Windows that actually close stuff :)
 * Add Close Buttons to multiple Instances too
