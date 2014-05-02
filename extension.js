@@ -60,6 +60,8 @@ const ExtendedThumbnailList = new Lang.Class({
         this._thumbnailBins = new Array();
         this._clones = new Array();
         this._windows = windows;
+        this._closeButtons = new Array();
+        this._selected = 0;
 
         for (let i = 0; i < windows.length; i++) {
 			let wrapper = new St.Widget({ layout_manager: new Clutter.BinLayout() });
@@ -71,28 +73,25 @@ const ExtendedThumbnailList = new Lang.Class({
             box.add_actor(bin);
             this._thumbnailBins.push(bin);
             
-				wrapper.add_actor(box);
-            	wrapper.add_actor(box);
-				let appButtonX = wrapper.x - 16;
-				let appButtonY = wrapper.y - 16;
-        
-				let closeButton = new St.Button({ style_class: 'window-close' });
-				wrapper.add_actor(closeButton);
-				closeButton.set_position(Math.floor(appButtonX), Math.floor(appButtonY));
-				closeButton.set_size(32,32);
+			wrapper.add_actor(box);
 				
-				let window = windows[i];
+			//This should respect RTL/LTR
+           	let appButtonX = wrapper.x - 16;
+			let appButtonY = wrapper.y - 16;
+        
+			let closeButton = new St.Button({ style_class: 'window-close' });
+			this._closeButtons.push(closeButton);
+			wrapper.add_actor(closeButton);
+			closeButton.set_position(Math.floor(appButtonX), Math.floor(appButtonY));
+			closeButton.opacity = 0;
+			
+				
+						
+				//let window = windows[i];
 					
-				closeButton.connect('clicked', Lang.bind(this,function(){
-					/*We don't remove the actor cause there doesn't seem to be any type of _relayout function in AppSwitcher
-					*  (cause it was never meant to remove elements while being drawn obviously) and that will look like stuff is broken
-					* target custom animations for a future version*/
-					wrapper.opacity = 50;
-					closeButton.opacity=0;
-					closeWindowInstance(window);
-						}));
-
-
+				closeButton.connect('clicked', Lang.bind(this, this._onButtonClicked));
+				
+							
             let title = windows[i].get_title();
             if (title) {
                 let name = new St.Label({ text: title });
@@ -109,6 +108,28 @@ const ExtendedThumbnailList = new Lang.Class({
 
         }
     },
+    
+    _itemEntered: function(n) {
+        this.emit('item-entered', n);
+        this._selected = n;
+        for(let i = 0; i < this._closeButtons.length; i++){
+			this._closeButtons[i].opacity = 0;
+			}
+        this._closeButtons[this._selected].opacity = 250;
+		},
+		
+    _onButtonClicked : function(){
+			closeWindowInstance(this._windows[this._selected]);
+			this._closeButtons[this._selected].destroy();
+			this._labels[this._selected].destroy();
+		},
+
+	removeItem: function() {
+		let actor = this._items[this._selected];
+		this._list.remove_actor(actor);
+		this._items = this._items.slice(this._selected);
+		this._list.get_allocation_box();
+		},
 
     addClones : function (availHeight) {
         if (!this._thumbnailBins.length)
