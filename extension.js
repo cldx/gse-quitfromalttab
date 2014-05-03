@@ -65,15 +65,12 @@ const ExtendedThumbnailList = new Lang.Class({
 
         for (let i = 0; i < windows.length; i++) {
 			let wrapper = new St.Widget({ layout_manager: new Clutter.BinLayout() });
-            let box = new St.BoxLayout({ style_class: 'thumbnail-box',
-                                         vertical: true });
-
+            let box = new St.BoxLayout({ style_class: 'thumbnail-box', vertical: true });
             let bin = new St.Bin({ style_class: 'thumbnail' });
 
             box.add_actor(bin);
             this._thumbnailBins.push(bin);
-            
-			wrapper.add_actor(box);
+            wrapper.add_actor(box);
 				
 			//This should respect RTL/LTR
            	let appButtonX = wrapper.x - 16;
@@ -83,15 +80,10 @@ const ExtendedThumbnailList = new Lang.Class({
 			this._closeButtons.push(closeButton);
 			wrapper.add_actor(closeButton);
 			closeButton.set_position(Math.floor(appButtonX), Math.floor(appButtonY));
+			/* We make it invisible to make the hover work */
 			closeButton.opacity = 0;
+			closeButton.connect('clicked', Lang.bind(this, this._closeButtonHandler));
 			
-				
-						
-				//let window = windows[i];
-					
-				closeButton.connect('clicked', Lang.bind(this, this._onButtonClicked));
-				
-							
             let title = windows[i].get_title();
             if (title) {
                 let name = new St.Label({ text: title });
@@ -100,35 +92,37 @@ const ExtendedThumbnailList = new Lang.Class({
                 this._labels.push(bin);
                 bin.add_actor(name);
                 box.add_actor(bin);
-
                 this.addItem(wrapper, name);
             } else {
                 this.addItem(wrapper, null);
             }
-
         }
     },
     
     _itemEntered: function(n) {
+        /* we override SwitcherList._itemEntered cause we need a custom _selected var
+         * to find the right windows and close buttons */
         this.emit('item-entered', n);
         this._selected = n;
+        /*Hide all other Close Buttons... */
         for(let i = 0; i < this._closeButtons.length; i++){
 			this._closeButtons[i].opacity = 0;
 			}
+		/* ...and only show it on the current selection */
         this._closeButtons[this._selected].opacity = 250;
 		},
 		
-    _onButtonClicked : function(){
+    _closeButtonHandler : function(){
 			closeWindowInstance(this._windows[this._selected]);
 			this._closeButtons[this._selected].destroy();
 			this._labels[this._selected].destroy();
-		},
+	},
 
 	removeItem: function() {
+		/* Experimental hackish stuff */
 		let actor = this._items[this._selected];
 		this._list.remove_actor(actor);
 		this._items = this._items.slice(this._selected);
-		this._list.get_allocation_box();
 		},
 
     addClones : function (availHeight) {
@@ -199,18 +193,14 @@ function resetState() {
 }
 
 function closeWindowInstance(metaWindow){
-				
-				let windowClone = metaWindow._delegate;
-				let workspace = metaWindow.get_workspace();
-				
-				let windowAddedId = workspace.connect('window-added',Lang.bind(this, function(workspace,win){
-																	
-																	Mainloop.idle_add(Lang.bind(this,function() {
+	let windowClone = metaWindow._delegate;
+	let workspace = metaWindow.get_workspace();
+	let windowAddedId = workspace.connect('window-added',Lang.bind(this, function(workspace,win){
+															Mainloop.idle_add(Lang.bind(this,function() {
 																		windowClone.emit('selected');
 																		return false;
 																	}));
 														}));
-
 				metaWindow.delete(global.get_current_time());
 	}
 
@@ -260,8 +250,9 @@ function enable() {
         	}
 		});
 
-AppSwitcherPopupInjections['_createThumbnails'] = undefined;
-        AppSwitcherPopupInjections['_createThumbnails'] = injectToFunction(AltTab.AppSwitcherPopup.prototype, '_createThumbnails', function() {
+	AppSwitcherPopupInjections['_createThumbnails'] = undefined;
+    AppSwitcherPopupInjections['_createThumbnails'] = injectToFunction(AltTab.AppSwitcherPopup.prototype, '_createThumbnails', function() {
+		/*  destroy the old list so we can inject the new one */
 		this._thumbnails.actor.destroy();	
 
 		this._thumbnails = new ExtendedThumbnailList (this._items[this._selectedIndex].cachedWindows);
@@ -284,6 +275,19 @@ AppSwitcherPopupInjections['_createThumbnails'] = undefined;
 
         this._switcherList._items[this._selectedIndex].add_accessible_state (Atk.StateType.EXPANDED);
  		
+		});
+		
+		AppSwitcherPopupInjections['_keyPressHandler'] = undefined;
+		AppSwitcherPopupInjections['_keyPressHandler'] = injectToFunction(AltTab.AppSwitcherPopup.prototype, '_keyPressHandler', function(keysym, backwards, action) {
+			if(keysym == '113'){
+				if(this.thumbnailsVisible){
+					closeWindowInstance(this._items[this._selectedIndex].cachedWindows[this._thumbnails._selected]);	
+				}else{
+					closeWindowInstance(this._items[this._selectedIndex].cachedWindows[0]);
+					this._items[this._selectedIndex].actor.opacity = 50;
+					this._items[this._selectedIndex].closeButton.opacity=0;
+				}
+			}
 		});
 }
 	
